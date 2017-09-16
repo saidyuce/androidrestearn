@@ -32,9 +32,13 @@ import android.widget.Toast;
 import com.theoc.restapp.adapters.NavAdapter;
 import com.theoc.restapp.dataorganization.GeneralSync;
 import com.theoc.restapp.dataorganization.Screens;
+import com.theoc.restapp.dataorganization.barcode.OdulQrRead;
 import com.theoc.restapp.dataorganization.barcode.SiparisQRread;
 import com.theoc.restapp.dataorganization.screendata.GetDataFreePoint;
 import com.theoc.restapp.dataorganization.screendata.GetDataPoints;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class MyPointsActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -63,7 +67,7 @@ public class MyPointsActivity extends AppCompatActivity
             @Override
             public void onClick(View v) {
                 MyPointsActivity.this.finish();
-                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                overridePendingTransition(0, 0);
             }
         });
 
@@ -73,7 +77,7 @@ public class MyPointsActivity extends AppCompatActivity
             public void onClick(View v) {
                 Intent intent = new Intent(MyPointsActivity.this, QRActivity.class);
                 startActivity(intent);
-                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
             }
         });
 
@@ -82,56 +86,65 @@ public class MyPointsActivity extends AppCompatActivity
 
            start();
        }else {
-
-
-           qrReaded(getIntent().getStringExtra("qrText"));
-
+           qrRead(getIntent().getStringExtra("qrText"));
        }
-
     }
 
+    void qrRead(String qrcode) {
+        try {
+            JSONObject jj_temp=new JSONObject(qrcode);
+            String tempTip = jj_temp.getString("qr_tip");
+            if (tempTip != null) {
+                if (tempTip.equals("siparis")) {
+                    SiparisQRread qRread=new SiparisQRread(this);
+                    qRread.read(qrcode);
+                } else {
+                    OdulQrRead qRread=new OdulQrRead(this);
+                    qRread.read(qrcode);
+                }
+            }
 
-
-    void qrReaded(String qrcode){
-
-
-        SiparisQRread qRread=new SiparisQRread(this);
-        qRread.read(qrcode);
-
-
-
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 
    public void OnQrSuccess(String response){
 
-       Log.v("sonnnn",response);
+       AlertDialog.Builder builder = new AlertDialog.Builder(this);
+       builder.setMessage("Puan kazandınız!")
+               .setPositiveButton("HARİKA", new DialogInterface.OnClickListener() {
+                   public void onClick(DialogInterface dialog, int id) {
+                       dialog.dismiss();
+                   }
+               })
+               .show();
 
-       Dialog dialog=new Dialog(this);
-       dialog.setTitle("Puan kazandınız");
-
-       dialog.show();
        start();
-
-
-
     }
+
+    public void OnOdulQrSuccess(String response){
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage("Ödül kullandınız!")
+                .setPositiveButton("HARİKA", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.dismiss();
+                    }
+                })
+                .show();
+
+        start();
+    }
+
   public  void OnQrError(String error){
-
-
-      Dialog dialog=new Dialog(this);
-      dialog.setTitle("Hata");
-
-      dialog.show();
+      if (error.equals("wrong")) {
+          Toast.makeText(this, "Hatalı bir QR kod okuttunuz", Toast.LENGTH_SHORT).show();
+      } else {
+          Toast.makeText(this, "Lütfen internet bağlantınızı kontrol edin", Toast.LENGTH_SHORT).show();
+      }
       start();
-
-
   }
-
-
-
-
-
-
 
     @Override
     protected void onResume() {
@@ -140,18 +153,15 @@ public class MyPointsActivity extends AppCompatActivity
     }
 
     @Override
-    protected void onPause(){
-        super.onPause();
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-    }
-
-    @Override
     public void onBackPressed() {
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         } else {
-            super.onBackPressed();
+            Intent intent = new Intent(Intent.ACTION_MAIN);
+            intent.addCategory(Intent.CATEGORY_HOME);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
         }
     }
 

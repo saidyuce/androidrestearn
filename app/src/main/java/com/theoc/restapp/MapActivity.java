@@ -99,7 +99,7 @@ public class MapActivity extends AppCompatActivity
             public void onClick(View v) {
                 Intent intent = new Intent(MapActivity.this, MyPointsActivity.class);
                 startActivity(intent);
-                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                overridePendingTransition(0, 0);
             }
         });
 
@@ -122,7 +122,7 @@ public class MapActivity extends AppCompatActivity
             public void onClick(View v) {
                 Intent intent = new Intent(MapActivity.this, QRActivity.class);
                 startActivity(intent);
-                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
             }
         });
         ((TextView) findViewById(R.id.navNameTextView)).setText(GeneralSync.isim + " " + GeneralSync.soyisim);
@@ -140,7 +140,7 @@ public class MapActivity extends AppCompatActivity
             intent.addCategory(Intent.CATEGORY_HOME);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
-            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+            overridePendingTransition(0, 0);
         }
     }
 
@@ -156,12 +156,11 @@ public class MapActivity extends AppCompatActivity
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 boolean check = buttonView.isChecked();
-                if (check) {
+                if (!check) {
                     // asd
-                } else {
                     Intent intent = new Intent(MapActivity.this, HomeActivity.class);
                     startActivity(intent);
-                    overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
+                    overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
                 }
             }
         });

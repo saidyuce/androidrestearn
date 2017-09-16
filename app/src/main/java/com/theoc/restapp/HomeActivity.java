@@ -19,6 +19,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.AbsListView;
 import android.widget.CompoundButton;
+import android.widget.GridView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -29,6 +30,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.facebook.login.LoginManager;
+import com.google.android.gms.auth.api.Auth;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.Status;
 import com.theoc.restapp.adapters.NavAdapter;
 import com.theoc.restapp.dataorganization.GeneralSync;
 import com.theoc.restapp.dataorganization.Screens;
@@ -36,13 +42,16 @@ import com.theoc.restapp.dataorganization.ServerYanıt;
 import com.theoc.restapp.dataorganization.SocketMessage;
 import com.theoc.restapp.dataorganization.barcode.ConnectionPc;
 import com.theoc.restapp.dataorganization.screendata.GetDataHomeScreen;
+import com.theoc.restapp.helper.HeaderGridView;
 
 public class HomeActivity extends AppCompatActivity {
-    public ListView listView, navListView;
+    public HeaderGridView listView;
+    ListView navListView;
     LinearLayout bottomBar;
     GetDataHomeScreen getDataHome;
     public SearchView actionView2;
     ConnectionPc connection;
+    GoogleApiClient mGoogleApiClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,6 +59,13 @@ public class HomeActivity extends AppCompatActivity {
         setContentView(R.layout.activity_home);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestEmail()
+                .build();
+        mGoogleApiClient = new GoogleApiClient.Builder(HomeActivity.this)
+                .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
+                .build();
+        mGoogleApiClient.connect();
         getDataHome = new GetDataHomeScreen(this);
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -59,7 +75,8 @@ public class HomeActivity extends AppCompatActivity {
         findViewById(R.id.footerRL).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.v("asdasfa", "CIKIS CLICKED");
+
+                Auth.GoogleSignInApi.signOut(mGoogleApiClient);
                 LoginManager.getInstance().logOut();
                 SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
                 SharedPreferences.Editor editor = prefs.edit();
@@ -84,7 +101,7 @@ public class HomeActivity extends AppCompatActivity {
             public void onClick(View view) {
                 Intent intent = new Intent(HomeActivity.this, HomeActivity.class);
                 startActivity(intent);
-                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                overridePendingTransition(0, 0);
             }
         });
         LinearLayout MyPointsLL = (LinearLayout) findViewById(R.id.MyPointsLL);
@@ -93,7 +110,7 @@ public class HomeActivity extends AppCompatActivity {
             public void onClick(View v) {
                 Intent intent = new Intent(HomeActivity.this, MyPointsActivity.class);
                 startActivity(intent);
-                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                overridePendingTransition(0, 0);
             }
         });
         ImageView midiconImageView = (ImageView) findViewById(R.id.midiconImageView);
@@ -104,36 +121,11 @@ public class HomeActivity extends AppCompatActivity {
                 startActivity(intent); //bu orjinal hali
                 /*Intent intent = new Intent(HomeActivity.this, CafeJoinActivity.class);
                 intent.putExtra("qrText", "{\"cafe\":\"3\",\"masa\":\"D14\"}");*/
-                startActivity(intent);
-                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
             }
         });
         bottomBar = (LinearLayout) findViewById(R.id.bottomBar);
-        listView = (ListView) findViewById(R.id.listView);
-        listView.setOnScrollListener(new AbsListView.OnScrollListener() {
-            int lastFirstVisibleItem = 0;
-
-            @Override
-            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-                if (view.getId() == listView.getId()) {
-                    final int currentFirstVisibleItem = listView.getFirstVisiblePosition();
-
-                    if (currentFirstVisibleItem > lastFirstVisibleItem) {
-                        bottomBar.animate().translationY(bottomBar.getHeight());//.setInterpolator(new AccelerateInterpolator(2));;
-                    } else if (currentFirstVisibleItem < lastFirstVisibleItem) {
-                        bottomBar.animate().translationY(0);//.setInterpolator(new DecelerateInterpolator(2));
-                    }
-                    lastFirstVisibleItem = currentFirstVisibleItem;
-                }
-            }
-
-            @Override
-            public void onScrollStateChanged(AbsListView view, int scrollState) {
-                if (scrollState == SCROLL_STATE_IDLE) {
-                    bottomBar.animate().translationY(0);
-                }
-            }
-        });
+        listView = (HeaderGridView) findViewById(R.id.listView);
         //get user id and city
         GeneralSync generalSync=new GeneralSync(this);
         generalSync.start();
@@ -143,11 +135,6 @@ public class HomeActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         GeneralSync.set_screen(Screens.HomeScreen);
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
     }
 
     @Override
@@ -174,11 +161,12 @@ public class HomeActivity extends AppCompatActivity {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 boolean check = buttonView.isChecked();
                 if (check) {
+                    /*
                     Intent intent = new Intent(HomeActivity.this, MapActivity.class);
                     startActivity(intent);
-                    overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
-                } else {
-                    // asd
+                    overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+                    */
+                    Toast.makeText(HomeActivity.this, "Harita görünümü şu an kullanılamıyor", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -235,7 +223,7 @@ public class HomeActivity extends AppCompatActivity {
         if (serverYanıt==ServerYanıt.bos){}
         else  if (serverYanıt==ServerYanıt.fail){}
        else  if (serverYanıt==ServerYanıt.misafir){
-            ((TextView) findViewById(R.id.navNameTextView)).setText("Misafir Girisi");
+            ((TextView) findViewById(R.id.navNameTextView)).setText("Misafir Girişi");
         }
      else   if (serverYanıt==ServerYanıt.success){  //isim soyisim dolu oluyo GeneralSync.isim...
             ((TextView) findViewById(R.id.navNameTextView)).setText(GeneralSync.isim + " " + GeneralSync.soyisim);

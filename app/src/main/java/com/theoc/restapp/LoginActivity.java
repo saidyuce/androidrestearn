@@ -63,6 +63,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     GoogleApiClient googleApiClient;
     SignInButton googleLoginButton;
     public static SocketMessage socket_message;
+    String forgotTempEmail = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -115,8 +116,14 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.imageButton:
-                giris.normal_giriş(((EditText) findViewById(R.id.usernameEditText)).getText().toString(),
-                        ((EditText) findViewById(R.id.passwordEditText)).getText().toString());
+                if (!((EditText) findViewById(R.id.usernameEditText)).getText().toString().equals("") &&
+                        !((EditText) findViewById(R.id.passwordEditText)).getText().toString().equals("")) {
+                    giris.normal_giriş(((EditText) findViewById(R.id.usernameEditText)).getText().toString(),
+                            ((EditText) findViewById(R.id.passwordEditText)).getText().toString(),
+                            "0");
+                } else {
+                    Toast.makeText(this, "Lütfen tüm gerekli alanları doldurun", Toast.LENGTH_SHORT).show();
+                }
                 break;
             case R.id.fbLoginButton:
                 fbLogin();
@@ -130,18 +137,18 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
             case R.id.registerButton:
                 Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
                 startActivity(intent);
-                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
                 break;
             case R.id.misafirButton:
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
                 builder.setTitle("Misafir Girişi")
-                        .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                        .setNegativeButton("İptal", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 dialog.dismiss();
                             }
                         })
-                        .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                        .setPositiveButton("Gİrİş Yap", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 misafir_girisi();
@@ -164,6 +171,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                         .setPositiveButton("Gönder", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
+                                forgotTempEmail = ((EditText) layout.findViewById(R.id.forgotEditText)).getText().toString();
                                 sifremi_unuttum(((EditText) layout.findViewById(R.id.forgotEditText)).getText().toString());
                             }
                         })
@@ -183,11 +191,23 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     }
 
 
-    public void sifre_server_cevabı(KayitType kayitType) {
+    public void sifre_server_cevabı(KayitType kayitType, String key) {
         if (kayitType == KayitType.var) {
-            Toast.makeText(this, "E-mail adresinize şifrenizi yenilemeniz için bir mail gönderildi", Toast.LENGTH_SHORT).show();
+            final View layout=this.getLayoutInflater().inflate(R.layout.forgot_dialog, null);
+            JSONObject jj_temp =new JSONObject();
+            try {
+                jj_temp.put("user_name", forgotTempEmail);
+                forgotTempEmail = "";
+                jj_temp.put("api_key", "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");
+                jj_temp.put("key", key);
+                jj_temp.put("type", "forgot");
+                LoginActivity.socket_message.email_user(jj_temp);
+                Toast.makeText(this, "E-mail adresinize şifre yenilemeniz için bir mail gönderildi", Toast.LENGTH_SHORT).show();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
         } else if (kayitType == KayitType.yok) {
-            Toast.makeText(this, "Girdiğiniz e-mail adresine kayıtlı bir kullanıcı bulunamadı", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Girdiğiniz e-mail adresi ile kayıtlı bir kullanıcı bulunamadı", Toast.LENGTH_SHORT).show();
         } else if (kayitType == KayitType.serversorunu) {
             Toast.makeText(this, "Bir sunucu hatası oluştu. Lütfen tekrar deneyin", Toast.LENGTH_SHORT).show();
         }
@@ -208,11 +228,18 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                                     JSONObject object,
                                     GraphResponse response) {
                                 try {
-                                    Log.v("OBJECT: ", object+"");
-                                    giris.face_giris(object.getString("email"),
-                                            android.provider.Settings.System.getString(LoginActivity.super.getContentResolver(), android.provider.Settings.Secure.ANDROID_ID),
-                                            object.getString("first_name"),
-                                            object.getString("last_name"));
+                                    if (object.get("email") != null) {
+                                        giris.face_giris(object.getString("email"),
+                                                android.provider.Settings.System.getString(LoginActivity.super.getContentResolver(), android.provider.Settings.Secure.ANDROID_ID),
+                                                object.getString("first_name"),
+                                                object.getString("last_name"));
+                                    } else {
+                                        giris.face_giris(object.getString("id") + "@facebook.com",
+                                                android.provider.Settings.System.getString(LoginActivity.super.getContentResolver(), android.provider.Settings.Secure.ANDROID_ID),
+                                                object.getString("first_name"),
+                                                object.getString("last_name"));
+                                    }
+
                                 } catch (JSONException e) {
                                     Toast.makeText(LoginActivity.this, "Lütfen Facebook girişinizi tekrarlayın", Toast.LENGTH_LONG).show();
                                     Toast.makeText(LoginActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
@@ -227,12 +254,12 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 
             @Override
             public void onCancel() {
-                Log.v("FACEBOOK GIRIS: ", "onCancel");
+                Toast.makeText(LoginActivity.this, "Facebook girişini iptal ettiniz", Toast.LENGTH_SHORT).show();
             }
 
             @Override
             public void onError(FacebookException error) {
-                Log.v("FACEBOOK GIRIS: ", "onError");
+                Toast.makeText(LoginActivity.this, "Lütfen Facebook girişinizi tekrarlayın", Toast.LENGTH_LONG).show();
             }
         });
 
@@ -249,7 +276,6 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     }
 
     public void googleLogin() {
-        Log.v("Google Login = ", "True");
         Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(googleApiClient);
         startActivityForResult(signInIntent, 2);
     }
@@ -259,20 +285,19 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == 2) {
             GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
-            Log.v("STATUS CODE", result.getStatus().toString());
-            Log.v("Result", result.toString());
+            Log.d("STATUS CODE", result.getStatus().toString());
             if (result.isSuccess()) {
-                Log.v("RESULT = ", "SUCCESS");
+                Log.d("RESULT = ", "SUCCESS");
                 GoogleSignInAccount acct = result.getSignInAccount();
                 if (acct != null) {
-                    Log.v("ACCOUNT: ", acct.toString() + "");
+                    Log.d("ACCOUNT: ", acct.toString() + "");
                 giris.mail_giris(acct.getEmail(),
                         android.provider.Settings.System.getString(LoginActivity.super.getContentResolver(), android.provider.Settings.Secure.ANDROID_ID),
                         acct.getGivenName(),
                         acct.getFamilyName());
                 }
             } else {
-                Log.v("RESULT = ", "FAIL");
+                Toast.makeText(LoginActivity.this, "Lütfen Google girişinizi tekrarlayın", Toast.LENGTH_LONG).show();
             }
         } else {
             callbackManager.onActivityResult(requestCode, resultCode, data);
@@ -282,7 +307,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     public void gir(GirisType type, String temp_key, int id) {
 
         if (type.equals(GirisType.girisbasarisiz)) {
-            Toast.makeText(this.getBaseContext(), "Şifre veya mail yanlış!!", Toast.LENGTH_LONG).show();
+            Toast.makeText(this.getBaseContext(), "Girdiginiz bilgilerde kullanici bulunamadi", Toast.LENGTH_LONG).show();
 
         } else if (type.equals(GirisType.girisbasarili)) {
 
@@ -298,13 +323,44 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
             Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
             startActivity(intent);
             finish();
-            overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
 
         } else if (type.equals(GirisType.onaybekleniyor)) {
-            Toast.makeText(this.getBaseContext(), "Lütfen mailinize gelen onay linkini tıklayın!!", Toast.LENGTH_LONG).show();
+            if (temp_key.equals("")) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("E-mail Aktivasyonu")
+                        .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                            }
+                        })
+                        .setPositiveButton("Tekrar Gönder", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                giris.normal_giriş(((EditText) findViewById(R.id.usernameEditText)).getText().toString(),
+                                        ((EditText) findViewById(R.id.passwordEditText)).getText().toString(),
+                                        "1");
+                            }
+                        })
+                        .setMessage("Giriş yapabilmek için e-mail adresinize gönderdiğimiz aktivasyon e-mailini onaylamanız gerekiyor. Aktivasyon e-mailini tekrar göndermek ister misiniz?")
+                        .show();
+            } else {
+                JSONObject jj_temp =new JSONObject();
+                try {
+                    jj_temp.put("user_name", ((EditText) findViewById(R.id.usernameEditText)).getText().toString());
+                    jj_temp.put("api_key", "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");
+                    jj_temp.put("key", temp_key);
+                    jj_temp.put("type", "register");
+                    LoginActivity.socket_message.email_user(jj_temp);
+                    Toast.makeText(LoginActivity.this, "Size yeni bir aktivasyon e-maili gönderdik. Lütfen e-mail aktivasyonunuzu yapın", Toast.LENGTH_LONG).show();
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
 
         } else if (type.equals(GirisType.girisserversorunu)) {
-            Toast.makeText(this.getBaseContext(), "İnternet bağlantınızı kontrol edin veya daha sonra tekrar deneyin!!", Toast.LENGTH_LONG).show();
+            Toast.makeText(this.getBaseContext(), "Lütfen internet bağlantınızı kontrol edin", Toast.LENGTH_LONG).show();
 
         } else if (type.equals(GirisType.facegirisfail)) {
 
@@ -321,7 +377,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
             Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
             startActivity(intent);
             finish();
-            overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
 
         } else if (type.equals(GirisType.facegirisyok)) {
             prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
@@ -335,7 +391,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
             Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
             startActivity(intent);
             finish();
-            overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
 
         } else if (type.equals(GirisType.mailgirisfail)) {
 
@@ -352,7 +408,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
             Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
             startActivity(intent);
             finish();
-            overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
 
         } else if (type.equals(GirisType.mailgirisyok)) {
             prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
@@ -366,7 +422,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
             Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
             startActivity(intent);
             finish();
-            overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
         }
 
 
@@ -379,7 +435,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
         startActivity(intent);
         finish();
-        overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
+        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
     }
 
 }

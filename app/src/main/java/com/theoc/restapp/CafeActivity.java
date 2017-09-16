@@ -8,9 +8,11 @@ import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -39,6 +41,7 @@ public class CafeActivity extends AppCompatActivity implements OnMapReadyCallbac
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         toolbar.setTitle(name);
         setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -50,9 +53,23 @@ public class CafeActivity extends AppCompatActivity implements OnMapReadyCallbac
         cafe_y = intent.getDoubleExtra("cafe_y", 0.0);
 
         TextView cafeTextView = (TextView) findViewById(R.id.cafeTextView);
-        cafeTextView.setText("Aasfsagıasgasgjsag asuaıugsa" +
-                " ashbfaısuhfuıas naga gsankgn ganngsa lkasgasnlgaskl" +
-                " lasngsanglkjasn anslgnaa gagsakasgkan");  // data.get_cafe_detail();
+        cafeTextView.setText(intent.getStringExtra("cafe_detail"));
+
+        Glide.with(this)
+                .load("http://restearndev.xyz/RestUpp/KontrolPaneli/caferesim/" + intent.getStringExtra("large_image"))
+                .error(R.drawable.mypointsnargile)
+                .placeholder(R.drawable.placeholder)
+                .dontAnimate()
+                .centerCrop()
+                //.crossFade()
+                .into((ImageView) findViewById(R.id.largeImageView));
+
+    }
+
+    @Override
+    public boolean onSupportNavigateUp(){
+        finish();
+        return true;
     }
 
     @Override
@@ -86,6 +103,5 @@ public class CafeActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onPause(){
         super.onPause();
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
     }
 }
